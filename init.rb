@@ -30,7 +30,8 @@ Redmine::Plugin.register :redmine_rubycas do
     :logout_url => nil,
     :validate_url => nil,
     :username_session_key => 'cas_user',
-    :extra_attributes_session_key => 'cas_extra_attributes'
+    :extra_attributes_session_key => 'cas_extra_attributes',
+    :fallback_email_domain => 'usf.edu'
   })
 end
 

@@ -17,3 +17,4 @@ en:
   validate_url: "CAS Validate URL (optional)"
   username_session_key: "CAS Username Session Key"
   extra_attributes_session_key: "CAS Extra Attributes Session Key"
+  fallback_email_domain: "Append email domain for new accounts missing the mail CAS attribute"

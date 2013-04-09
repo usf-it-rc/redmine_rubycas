@@ -14,10 +14,33 @@ module AccountControllerPatch
           user = User.find_or_initialize_by_login(session[:"#{RedmineRubyCas.setting("username_session_key")}"])
           if user.new_record?
             if RedmineRubyCas.setting("auto_create_users") == "true"
-              user.attributes = RedmineRubyCas.user_extra_attributes_from_session(session)
-              user.status = User::STATUS_REGISTERED
+              attributes = RedmineRubyCas.user_extra_attributes_from_session(session)
+              custom_fields = RedmineRubyCas.user_custom_attributes_from_session(session, user)
 
-              register_automatically(user) do
+              Rails.logger.debug "login_with_cas() => attributes = " + attributes.to_s 
+              Rails.logger.debug "login_with_cas() => custom_fields = " + custom_fields.to_s 
+
+              # Use namsid to set user id, if available (USF-centric)
+              if custom_fields.has_key?(2)
+                user.id = custom_fields[2]
+              end
+
+              # set default mail address if mail is empty
+              if !attributes.has_key?(:mail) or attributes[:mail] == nil
+                attributes[:mail] = session[:"#{RedmineRubyCas.setting("username_session_key")}"] + "@" + RedmineRubyCas.setting("fallback_email_domain")
+              end
+
+              user.attributes = attributes
+              user.custom_field_values = custom_fields
+              user.status = User::STATUS_REGISTERED
+              user.activate
+              user.last_login_on = Time.now
+
+              if user.save
+                self.logged_user = user
+                flash[:notice] = l(:notice_account_activated)
+                redirect_to '/'
+              else
                 onthefly_creation_failed(user)
               end
             else
@@ -30,6 +53,8 @@ module AccountControllerPatch
             if user.active?
               if RedmineRubyCas.setting("auto_update_users") == "true"
                 user.update_attributes(RedmineRubyCas.user_extra_attributes_from_session(session))
+                user.custom_field_values = RedmineRubyCas.user_custom_attributes_from_session(session,user)
+                user.save
               end
               successful_authentication(user)
             else

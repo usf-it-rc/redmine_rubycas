@@ -49,6 +49,7 @@ module RedmineRubyCas
     attrs
   end
 
+  # Populates standard attributes
   def user_extra_attributes_from_session(session)
     attrs = {}
     map = extra_attributes_map
@@ -62,4 +63,39 @@ module RedmineRubyCas
     end
     attrs
   end
+
+  # Populates attributes for use as user custom fields
+  def user_custom_attributes_from_session(session, user)
+    attrs = {}
+    fields = {}
+    map = extra_attributes_map
+
+    # First, map the key value pairs
+    if custom_attributes = session[:"#{setting("extra_attributes_session_key")}"]
+      custom_attributes.each_pair do |key,val|
+        mapped_key = map[key]
+        if mapped_key && !User.attribute_method?(mapped_key)
+          attrs[mapped_key] = (val.is_a? Array) ? val.first : val
+        end
+      end
+    end
+
+    # Now, map to the field id
+    user.available_custom_fields.each do |field|
+      case field.name
+      when "namsid"
+        fields[field.id] = attrs['namsid']
+      when "affiliation"
+        fields[field.id] = attrs['affiliation']
+      when "campus"
+        fields[field.id] = attrs['campus']
+      when "college"
+        fields[field.id] = attrs['college']
+      when "unumber"
+        fields[field.id] = attrs['unumber'].to_s.gsub(/[A-Z]/,"")
+      end 
+    end 
+    fields
+  end
+
 end
