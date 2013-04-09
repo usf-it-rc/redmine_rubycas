@@ -56,7 +56,18 @@ module AccountControllerPatch
                 user.custom_field_values = RedmineRubyCas.user_custom_attributes_from_session(session,user)
                 user.save
               end
-              successful_authentication(user)
+
+              logger.info "Successful authentication for '#{user.login}' from #{request.remote_ip} at #{Time.now.utc}"
+              # Valid user
+              self.logged_user = user
+              # generate a key and set cookie if autologin
+              if params[:autologin] && Setting.autologin?
+                set_autologin_cookie(user)
+              end 
+              call_hook(:controller_account_success_authentication_after, {:user => user })
+              redirect_back_or_default "/"
+
+              #successful_authentication(user)
             else
               render_error(
                 :message => l(:cas_user_not_found, :user => session[:"#{RedmineRubyCas.setting("username_session_key")}"]),
